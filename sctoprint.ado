@@ -91,7 +91,6 @@ cap ren relevant relevance
 * add repeated message 
 gen re="[Repeated in " + name[_n-1] + "] " if type[_n-1]=="begin repeat" & type!="end repeat"
 replace re=re[_n-1] if regex(re[_n-1],"Repeated in")==1 & re=="" & type[_n]!="end repeat"
-//replace `label' = re + `label'
 
 * ensure string
 ds hint* relevance constraint*
@@ -248,7 +247,7 @@ replace bucket1 = "Please write down: __________________________" if type=="text
 
 * Spell out the constraints and relevances
     *Replace functions with English phrases that have the same meaning.
- foreach var in constraint relevance {
+ foreach var of varlist constraint relevance {
     if "`var'"=="constraint" {
    		local verb = "must be"	
     }
@@ -267,6 +266,10 @@ replace bucket1 = "Please write down: __________________________" if type=="text
     replace `var'=usubinstr(`var', ">", " `varb' greater than ", .) 
     replace `var'=usubinstr(`var', "<", " `varb' less than ", .) 
     replace `var'=usubinstr(`var', "!=", " does not equal ", .)
+    replace `var'=usubinstr(`var', "=", " `varb' equal to ", .)
+    replace `var' = usubinstr(`var', "(", "", .) if length(`var') - length(subinstr(`var', ")", "", .))!=length(`var') - length(subinstr(`var', "(", "", .))
+    replace `var' = usubinstr(`var', ")", "", .) if length(`var') - length(subinstr(`var', ")", "", .))!=length(`var') - length(subinstr(`var', "(", "", .))
+    }
 
 /*     replace `var'=usubinstr(`var', "=", "equals ", .) 
     replace `var'=usubinstr(`var', "!=", "does not equal ", .)  */
@@ -444,7 +447,18 @@ if "`word'" != "" putdocx save "`save'", replace
 
 if "`clear'" == "" use `original', clear
 
-noi display `"The print version questionnaire is saved here {browse "`save'":`save'}"' 
+if "`pdf'" != "" loc save = usubinstr("`save'", "`save'.pdf",.)
+if "`word'" != "" loc save = usubinstr("`save'", "`save'.docx",.)
+
+if  regex("`save'", "/'")==0 & regex("`save'", "\'")==0  {
+	noi display `"The print version questionnaire is saved here {browse "`=c(pwd)'\\`save'":`save'}"' 	
+}
+else {
+
+	noi display `"The print version questionnaire is saved here {browse "`save'":`save'}"' 	
+}
+
+
 
 } //qui bracket
 
