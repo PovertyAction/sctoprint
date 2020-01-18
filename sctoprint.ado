@@ -67,8 +67,8 @@ cap confirm file "`save'"
 
 
 noi di "This might take few moments. Please wait... (☉.☉)" 
-pause on
-// set niceness 1
+
+
 * create tempfiles to store survey and choices sheet that will be merged later on
 tempfile survey choices original
 
@@ -447,8 +447,8 @@ if "`word'" != "" putdocx save "`save'", replace
 
 if "`clear'" == "" use `original', clear
 
-if "`pdf'" != "" loc save = usubinstr("`save'", "`save'.pdf",.)
-if "`word'" != "" loc save = usubinstr("`save'", "`save'.docx",.)
+if "`pdf'" != "" loc save : usubinstr("`save'", "`save'.pdf",.)
+if "`word'" != "" loc save : usubinstr("`save'", "`save'.docx",.)
 
 if  regex("`save'", "/'")==0 & regex("`save'", "\'")==0  {
 	noi display `"The print version questionnaire is saved here {browse "`=c(pwd)'\\`save'":`save'}"' 	
