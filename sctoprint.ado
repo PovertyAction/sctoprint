@@ -451,11 +451,11 @@ foreach x of local blocks {
 
 	if "`clear'" == "" use `original', clear
 
-	if "`pdf'" != "" loc savenew = "`save'"+".pdf"
-	if "`word'" != "" loc savenew = "`save'"+".docx"
+	if "`pdf'" != "" noi display `"The pdf version questionnaire is saved here {browse "`save'.pdf":`save'}"'
+	if "`word'" != "" noi display `"The word version questionnaire is saved here {browse "`save'.docx":`save'}"'
 
 
-	noi display `"The print version questionnaire is saved here {browse "`savenew'":`save'}"' 	
+	 	
 	
 
 
