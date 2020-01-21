@@ -10,15 +10,12 @@ Things I added recently:
 1. Choice list as: "code = label", instead of "code label"
 2. Added "Please write down: _________" if it is a text field
 3. Added a line for preloaded choice lists: "This list comes from X list from Y file."
-4. Added spell out the constraint and relevances. However, the selected(.,n) is faulty
+4. Added spell out the constraint and relevances. 
 5. Removed all html codes
 6. pdf or word as option
 
 To do:
 Make table for repeat group
-Spell out the constraints and relevances 
-creates subtitles with the group names
-Add option for pdf or word
 Drop or mark disabled
 Annex codes
 Attachments: image, option list
@@ -27,13 +24,11 @@ Carriage return in option list
 
 
 /** think about:
-- DONE: removing html or finding a way to reflect it in output
-- DONE: make choice lists positive before negative (multiple all positive numbers by -1 then sort)
-- DONE: think about preloaded choice lists
 - create appendix of choice lists / figure out how to deal with long choice lists
 - add groups
 - field list?
 */
+
 *  ----------------------------------------------------------------------------
 *  1. Define syntax                                                            
 *  ----------------------------------------------------------------------------
@@ -130,13 +125,22 @@ keep type name label* hint* constraint relevance appearance re repeat_count
 g list_name = word(type, -1) if ustrregexm(type, "(select_one)|(select_multiple)"), after(type)
 gen type_d = type
 replace type = usubinstr(word(type, 1), "_", " ", .)
-replace `label' = ustrregexra(`label', "<.*?>", " " ) if strpos(`label',"<")
-/* replace `label' = usubinstr(`label', "<p>", "", .)
-replace `label' = usubinstr(`label', "</p>", "", .)
-replace `label' = usubinstr(`label', "<strong>", "", .)
-replace `label' = usubinstr(`label', "</strong>", "", .)
- */
-replace `label' = ustrtrim(strtrim(stritrim(`label')))
+foreach var in `label' `hint' {
+	replace `var' = ustrregexra(`var', "<.*?>", " " ) if strpos(`var',"<")	
+
+	* Converting common html entities
+	replace `var' = ustrregexra(`var', "&nbsp;", "`=char(09)'	" ) if strpos(`var',"&nbsp;")
+	replace `var' = ustrregexra(`var', "&lt;", "<" ) if strpos(`var',"&lt;")
+	replace `var' = ustrregexra(`var', "&gt;", ">" ) if strpos(`var',"&gt;")
+	replace `var' = ustrregexra(`var', "&amp;", "&" ) if strpos(`var',"&amp;")
+
+	replace `var' = ustrtrim(strtrim(stritrim(`var')))
+}
+
+
+
+
+
 replace `hint' = "appearance: " + appearance + " " + `hint' if !mi(appearance)
 
 save "`survey'", replace
@@ -252,7 +256,7 @@ replace bucket1 = "Please write down: __________________________" if type=="text
    		local verb = "must be"	
     }
     
-    else {
+    else if "`var'"=="relevance" {
     	local verb = "is"
     }
 
@@ -269,13 +273,11 @@ replace bucket1 = "Please write down: __________________________" if type=="text
     replace `var'=usubinstr(`var', "=", " `varb' equal to ", .)
     replace `var' = usubinstr(`var', "(", "", .) if length(`var') - length(subinstr(`var', ")", "", .))!=length(`var') - length(subinstr(`var', "(", "", .))
     replace `var' = usubinstr(`var', ")", "", .) if length(`var') - length(subinstr(`var', ")", "", .))!=length(`var') - length(subinstr(`var', "(", "", .))
+    
+    replace `var' = ustrtrim(strtrim(stritrim(`var')))
+    replace `var' = usubinstr(`var', word(`var',1),proper(word(`var',1)),.)
     }
 
-/*     replace `var'=usubinstr(`var', "=", "equals ", .) 
-    replace `var'=usubinstr(`var', "!=", "does not equal ", .)  */
-
-
-}
 
 * reshape to allow for easy creation of columns
 reshape long bucket, i(name list_name `label' `hint' type repeat_count re) j(var)  
@@ -299,11 +301,11 @@ bysort row (var) : gen col4 = bucket[_n - 1] if var == 5, after(col3)
 drop if inlist(type, "begin", "end") & row==row[_n-1]
 
 * Generate text for begin group, begin repeat and end of group or repeat 
-replace bucket ="("+ name + ") " + `label' if type_d=="begin group"   // begin group
+replace bucket ="("+ name + ") " + `label' + ": "  + relevance  if type_d=="begin group"   // begin group
 
 replace repeat_count = "Can be added as many groups as needed" if mi(repeat_count) & !mi(re[_n+1]) & type_d=="begin"
 replace repeat_count = " [Repeat condition: " + usubinstr(repeat_count, "$", "", .) + "]" if !mi(repeat_count) & type_d=="begin repeat"
-replace bucket = "(Repeat group "+ name + ") " + `label' + repeat_count if type_d=="begin repeat"
+replace bucket = "(Repeat group "+ name + ") " + `label' + ": "  + relevance  +  repeat_count if type_d=="begin repeat"
 
 replace bucket = "Group "+ `"""' + name + " " + `label'+ `"""' + " ends." if type_d=="end group" // End group
 replace bucket = "Repeat Group "+ `"""' + name + " " + `label'+ `"""' + " ends." if type_d=="end repeat" 
@@ -315,32 +317,31 @@ replace block = block[_n-1] + dum if _n>1
 **********************************************************
 if "`pdf'" != "" {
 
+	* 2. Create document
+	putpdf clear 
 
-* 2. Create document
-putpdf clear 
+	*begin document
+	putpdf begin, font("Calibri", 8)
 
-*begin document
-putpdf begin, font("Calibri", 8)
+	putpdf paragraph, halign(right)  
+	putpdf text ("Created on: `c(current_date)'"), bold
 
-putpdf paragraph, halign(right)  
-putpdf text ("Created on: `c(current_date)'"), bold
-
-putpdf paragraph, halign(center)
-putpdf text ("`title'"), bold font(Calibri, 24)
+	putpdf paragraph, halign(center)
+	putpdf text ("`title'"), bold font(Calibri, 24)
 }
 
 if "`word'" != "" {
-* 2. Create document
-putdocx clear 
+	* 2. Create document
+	putdocx clear 
 
-*begin document
-putdocx begin, font("Calibri", 8)
+	*begin document
+	putdocx begin, font("Calibri", 8)
 
-putdocx paragraph, halign(right)  
-putdocx text ("Created on: `c(current_date)'"), bold
+	putdocx paragraph, halign(right)  
+	putdocx text ("Created on: `c(current_date)'"), bold
 
-putdocx paragraph, halign(center)
-putdocx text ("`title'"), bold font(Calibri, 24)
+	putdocx paragraph, halign(center)
+	putdocx text ("`title'"), bold font(Calibri, 24)
 }
 
 levelsof block, loc(blocks)
@@ -354,7 +355,7 @@ foreach x of local blocks {
 
 	if "`pdf'" != "" {
 
-	putpdf paragraph, halign(left)
+		putpdf paragraph, halign(left)
 	
 		if inlist(type,"end") & _n==1 {
 			putpdf text (bucket[1]), bold font(Calibri, 10, "gray") linebreak(2)
@@ -368,36 +369,39 @@ foreach x of local blocks {
 		if _N>0 {
 			putpdf table outputtable`x' = data(col*), border(all, nil) //border(insideV, nil) border(end, nil) //border(end, nil) border(start, nil)
 		
-		forval i = 1(5)`=_N' {
+			forval i = 1(5)`=_N' {
+				
 
-			* left two rows colspan
-			putpdf table outputtable`x'(`i', 1) = ("`=col1[`i']'"), bgcolor(lightgray)  bold
-			putpdf table outputtable`x'(`i', 1), colspan(2) 
-			putpdf table outputtable`x'(`i', 3) = ("`=col3[`i']'"), bgcolor(lightgray) italic 
-			putpdf table outputtable`x'(`i', 3), colspan(2) halign(right) // change to 3
+				if inlist(type[`i'],"end", "begin")==1 putpdf table outputtable`x'(`i', 1), border(start, single)
 
-			* right two rows colspan
-			putpdf table outputtable`x'(`=`i'+1', 1), colspan(2) 
-			putpdf table outputtable`x'(`=`i'+1', 3), colspan(2) halign(right) 
+				* left two rows colspan
+				putpdf table outputtable`x'(`i', 1) = ("`=col1[`i']'"), bgcolor(lightgray)  bold
+				putpdf table outputtable`x'(`i', 1), colspan(2) 
+				putpdf table outputtable`x'(`i', 3) = ("`=col3[`i']'"), bgcolor(lightgray) italic 
+				putpdf table outputtable`x'(`i', 3), colspan(2) halign(right) // change to 3
 
-			* question and hint colspan
-			putpdf table outputtable`x'(`=`i'+2', 1), colspan(4) font("Calibri", 10) 
-			putpdf table outputtable`x'(`=`i'+3', 1), colspan(4) italic font("Calibri", 8, darkslategray)
+				* right two rows colspan
+				putpdf table outputtable`x'(`=`i'+1', 1), colspan(2) 
+				putpdf table outputtable`x'(`=`i'+1', 3), colspan(2) halign(right) 
 
-			* bg and nosplit
-			putpdf table outputtable`x'(`i' `=`i'+1', .), bgcolor(lightgray)
-			putpdf table outputtable`x'(`=`i'+4', .), nosplit 
-			putpdf table outputtable`x'(`i', .),  border(top, single) 
-			putpdf table outputtable`x'(`=`i'+4', .),  border(bottom, single)  
+				* question and hint colspan
+				putpdf table outputtable`x'(`=`i'+2', 1), colspan(4) font("Calibri", 10) 
+				putpdf table outputtable`x'(`=`i'+3', 1), colspan(4) italic font("Calibri", 8, darkslategray)
 
+				* bg and nosplit
+				putpdf table outputtable`x'(`i' `=`i'+1', .), bgcolor(lightgray)
+				putpdf table outputtable`x'(`=`i'+4', .), nosplit 
+				putpdf table outputtable`x'(`i', .),  border(top, single) 
+				putpdf table outputtable`x'(`=`i'+4', .),  border(bottom, single)  
+
+			}
 		}
-	}
 	}
 
 
 	if "`word'" != "" {
 
-	putdocx paragraph, halign(left)
+		putdocx paragraph, halign(left)
 	
 		if inlist(type,"end") & _n==1 {
 			putdocx text (bucket[1]), bold font(Calibri, 10, "gray") linebreak(2)
@@ -411,30 +415,30 @@ foreach x of local blocks {
 		if _N>0 {
 			putdocx table outputtable`x' = data(col*), border(all, nil) //border(insideV, nil) border(end, nil) //border(end, nil) border(start, nil)
 		
-		forval i = 1(5)`=_N' {
+			forval i = 1(5)`=_N' {
 
-			* left two rows colspan
-			putdocx table outputtable`x'(`i', 1) = ("`=col1[`i']'"),   bold  shading(lightgray)
-			putdocx table outputtable`x'(`i', 1), colspan(2) 
-			putdocx table outputtable`x'(`i', 3) = ("`=col3[`i']'"),  italic shading(lightgray)
-			putdocx table outputtable`x'(`i', 2), colspan(2) halign(right) 
+				* left two rows colspan
+				putdocx table outputtable`x'(`i', 1) = ("`=col1[`i']'"),   bold  shading(lightgray)
+				putdocx table outputtable`x'(`i', 1), colspan(2) 
+				putdocx table outputtable`x'(`i', 3) = ("`=col3[`i']'"),  italic shading(lightgray)
+				putdocx table outputtable`x'(`i', 2), colspan(2) halign(right) 
 
-			* right two rows colspan
-			putdocx table outputtable`x'(`=`i'+1', 1), colspan(2) 
-			putdocx table outputtable`x'(`=`i'+1', 2), colspan(2) halign(right) 
+				* right two rows colspan
+				putdocx table outputtable`x'(`=`i'+1', 1), colspan(2) 
+				putdocx table outputtable`x'(`=`i'+1', 2), colspan(2) halign(right) 
 
-			* question and hint colspan
-			putdocx table outputtable`x'(`=`i'+2', 1), colspan(4) font("Calibri", 10) 
-			putdocx table outputtable`x'(`=`i'+3', 1), colspan(4) italic font("Calibri", 8, darkslategray)
+				* question and hint colspan
+				putdocx table outputtable`x'(`=`i'+2', 1), colspan(4) font("Calibri", 10) 
+				putdocx table outputtable`x'(`=`i'+3', 1), colspan(4) italic font("Calibri", 8, darkslategray)
 
-			* bg and nosplit
-			putdocx table outputtable`x'(`i' `=`i'+1', .), shading(lightgray)
-			putdocx table outputtable`x'(`=`i'+4', .), nosplit 
-			putdocx table outputtable`x'(`i', .),  border(top, single) 
-			putdocx table outputtable`x'(`=`i'+4', .),  border(bottom, single)  
+				* bg and nosplit
+				putdocx table outputtable`x'(`i' `=`i'+1', .), shading(lightgray)
+				putdocx table outputtable`x'(`=`i'+4', .), nosplit 
+				putdocx table outputtable`x'(`i', .),  border(top, single) 
+				putdocx table outputtable`x'(`=`i'+4', .),  border(bottom, single)  
 
+			}
 		}
-	}
 	}
 
 	restore
@@ -442,21 +446,17 @@ foreach x of local blocks {
 	
 
 
-if "`pdf'" != "" putpdf save "`save'", replace
-if "`word'" != "" putdocx save "`save'", replace
+	if "`pdf'" != "" putpdf save "`save'", replace
+	if "`word'" != "" putdocx save "`save'", replace
 
-if "`clear'" == "" use `original', clear
+	if "`clear'" == "" use `original', clear
 
-if "`pdf'" != "" loc save : usubinstr("`save'", "`save'.pdf",.)
-if "`word'" != "" loc save : usubinstr("`save'", "`save'.docx",.)
+	if "`pdf'" != "" loc savenew = "`save'"+".pdf"
+	if "`word'" != "" loc savenew = "`save'"+".docx"
 
-if  regex("`save'", "/'")==0 & regex("`save'", "\'")==0  {
-	noi display `"The print version questionnaire is saved here {browse "`=c(pwd)'\\`save'":`save'}"' 	
-}
-else {
 
-	noi display `"The print version questionnaire is saved here {browse "`save'":`save'}"' 	
-}
+	noi display `"The print version questionnaire is saved here {browse "`savenew'":`save'}"' 	
+	
 
 
 
