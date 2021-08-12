@@ -139,8 +139,6 @@ foreach var in `label' `hint' {
 
 
 
-
-
 replace `hint' = "appearance: " + appearance + " " + `hint' if !mi(appearance)
 
 save "`survey'", replace
@@ -214,7 +212,7 @@ forval n = 1/`=_N' {
 	forval bucket = 1/4 {
 
 		*first value of bucket is the first variable	
-		replace bucket`bucket' = choices`first'[`n'] if _n == `n'
+		cap replace bucket`bucket' = choices`first'[`n'] if _n == `n'
 
 		* loop through the rest that should go in the bucket and add them with a linebreak
 		forval i = `start'/`end' {
@@ -240,7 +238,7 @@ forval n = 1/`=_N' {
 drop choices* _merge
 
 * Add text if choice list comes from attachment
-split appearance, p(')
+cap split appearance, p(')
 cap confirm appearance2
 if !_rc {
 	replace bucket1 = "Choice list comes from " + list_name + " list from preloaded " + appearance2 + " file." if regex(appearance, "search")==1
@@ -455,11 +453,11 @@ foreach x of local blocks {
 	if "`word'" != "" noi display `"The word version questionnaire is saved here {browse "`save'.docx":`save'}"'
 
 
-	 	
-	
-
-
-
 } //qui bracket
 
 end
+
+//set tr on
+sctoprint using "C:\Users\MAli\Dropbox\Impact_on_Older_Adults_BD_20\Fieldwork\Tools\SurveyCTO files\Impact_COVID_Older_Adults_BD_Que (1).xlsx", ///
+	save("C:\Users\MAli\Dropbox\Impact_on_Older_Adults_BD_20\Fieldwork\Tools\SurveyCTO files\Bangla_print") title("Older Adults Bangladesh Questionnaire") ///
+	replace clear pdf word language(Bangla)
