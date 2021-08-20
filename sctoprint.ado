@@ -457,7 +457,3 @@ foreach x of local blocks {
 
 end
 
-//set tr on
-sctoprint using "C:\Users\MAli\Dropbox\Impact_on_Older_Adults_BD_20\Fieldwork\Tools\SurveyCTO files\Impact_COVID_Older_Adults_BD_Que (1).xlsx", ///
-	save("C:\Users\MAli\Dropbox\Impact_on_Older_Adults_BD_20\Fieldwork\Tools\SurveyCTO files\Bangla_print") title("Older Adults Bangladesh Questionnaire") ///
-	replace clear pdf word language(Bangla)
